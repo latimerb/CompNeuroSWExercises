@@ -1,0 +1,14 @@
+begintemplate SynCon
+
+	public syn,netcon,pre_type,pre_index,post_type,post_index
+	objref syn,netcon
+	strdef pre_type,post_type
+
+	proc init() {
+		pre_type = $s1
+		pre_index = $2
+		post_type = $s3
+		post_index = $4
+	}
+	
+endtemplate SynCon

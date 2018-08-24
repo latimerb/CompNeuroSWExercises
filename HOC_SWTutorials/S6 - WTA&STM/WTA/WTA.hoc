@@ -1,0 +1,163 @@
+load_file("nrngui.hoc")
+load_file("FS_cell.hoc")
+
+
+ccl_del = 100
+ccl_dur = 500
+
+
+// Current levels for visible WTA activity
+/*
+ccl1_amp = .321
+ccl2_amp = .22
+ccl3_amp = .219
+ccl4_amp = .221
+ccl5_amp = .2195
+*/
+
+//Current levels for stimulation of only one cell (un-comment to use)
+
+ccl1_amp = .2
+ccl2_amp = .0
+ccl3_amp = .0
+ccl4_amp = .0
+ccl5_amp = .0
+
+
+/////////////////////////
+// Cells Specification //
+/////////////////////////
+
+Itotal = 5
+objref Icell[Itotal]
+for i = 0,Itotal-1 {
+	Icell[i] = new FastSpiking()
+}
+
+//////////////
+// Networks //
+//////////////
+
+Icontotal = Itotal*(Itotal-1)
+objref I2Isyn[Icontotal], I2Icon[Icontotal]
+k = 0
+
+for i = 0, Itotal-1 {
+	for j = 0, Itotal-1 {
+		if (i != j) {
+			access Icell[i].dend
+			Icell[j].soma I2Isyn[k] = new GABA(0.1)
+			I2Icon[k] = new NetCon(&v(0.5),I2Isyn[k],0,2,1)
+			k += 1
+			//print (k)
+		}
+	}
+}
+
+/////////////////////
+// Instrumentation //
+/////////////////////
+
+///// current clamp ////
+objref ccl1, ccl2, ccl3, ccl4, ccl5
+
+Icell[0].soma ccl1 = new currentclamp(0.5)
+ccl1.del = ccl_del
+ccl1.dur = ccl_dur
+ccl1.amp = ccl1_amp
+
+Icell[1].soma ccl2 = new currentclamp(0.5)
+ccl2.del = ccl_del
+ccl2.dur = ccl_dur
+ccl2.amp = ccl2_amp
+
+Icell[2].soma ccl3 = new currentclamp(0.5)
+ccl3.del = ccl_del
+ccl3.dur = ccl_dur
+ccl3.amp = ccl3_amp
+
+Icell[3].soma ccl4 = new currentclamp(0.5)
+ccl4.del = ccl_del
+ccl4.dur = ccl_dur
+ccl4.amp = ccl4_amp
+
+Icell[4].soma ccl5 = new currentclamp(0.5)
+ccl5.del = ccl_del
+ccl5.dur = ccl_dur
+ccl5.amp = ccl5_amp
+
+/// graphical display ///
+
+
+
+/////////////////////////
+// simulation control  //
+/////////////////////////
+
+secondorder = 2
+
+dt = 0.01	// (ms)
+tstop = 700	// (ms)
+v_init = -75	// (mV)
+
+
+
+
+proc newPlotVoltage1() {
+		newPlot(0,tstop,-100,50)
+		graphItem.save_name("graphList[0].")
+		graphList[0].append(graphItem)
+		graphItem.addexpr("Icell[0].soma.v(0.5)")
+		graphItem.label(.08,.925,"mV")
+	}
+	
+proc newPlotVoltage2() {
+		newPlot(0,tstop,-100,50)
+		graphItem.save_name("graphList[0].")
+		graphList[0].append(graphItem)
+		graphItem.addexpr("Icell[1].soma.v(0.5)")
+		graphItem.label(.08,.925,"mV")
+	}	
+
+proc newPlotVoltage3() {
+		newPlot(0,tstop,-100,50)
+		graphItem.save_name("graphList[0].")
+		graphList[0].append(graphItem)
+		graphItem.addexpr("Icell[2].soma.v(0.5)")
+		graphItem.label(.08,.925,"mV")
+	}
+
+proc newPlotVoltage4() {
+		newPlot(0,tstop,-100,50)
+		graphItem.save_name("graphList[0].")
+		graphList[0].append(graphItem)
+		graphItem.addexpr("Icell[3].soma.v(0.5)")
+		graphItem.label(.08,.925,"mV")
+	}
+
+proc newPlotVoltage5() {
+		newPlot(0,tstop,-100,50)
+		graphItem.save_name("graphList[0].")
+		graphList[0].append(graphItem)
+		graphItem.addexpr("Icell[4].soma.v(0.5)")
+		graphItem.label(.08,.925,"mV")
+	}
+	
+//for i=0,19 {
+//nrnpointmenu(I2Isyn[i])
+//}
+
+//Put the following command in the main window
+//‘nrnpointmenu(I2Isyn[i])’ where i is synapse you want to change. 
+// An easier way might be to use the command 'I2Isyn[0].initW=10' to set the 
+//weight to, say 10. 
+
+//nrnsecmenu(0.5,1)
+
+newPlotVoltage1()
+newPlotVoltage2()
+newPlotVoltage3()
+newPlotVoltage4()
+newPlotVoltage5()
+nrncontrolmenu()
+run()

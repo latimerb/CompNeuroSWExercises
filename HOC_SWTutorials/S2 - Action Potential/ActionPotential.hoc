@@ -1,0 +1,281 @@
+{load_file("stdgui.hoc")}
+{load_file("cell_template.hoc")}
+
+objref axon
+
+SubVBoxNum = 3
+objref MainHBoxObj,SubVBoxObj[SubVBoxNum]
+strdef MainBoxTitle
+MainBoxTitle = "ActionPotential"
+
+SubDeckNum = 2
+objref SubDeckObj[SubDeckNum]
+
+ClampFlag = 0
+
+strdef tstr,tstr1
+
+proc Main() {
+	SetSimulationParameters()
+	newCell()
+	UpdateIClamp(5,40,100)
+	MainBox(MainBoxTitle,0,0,800,600)
+}
+
+proc SetSimulationParameters() {
+	tstop = 100
+	dt = 0.001
+	steps_per_ms = 100
+	v_init = -60
+}
+
+proc newCell() {
+	axon = new squidCell()
+}
+
+proc MainBox() { local i
+	MainHBoxObj = new HBox()
+	for i=0,SubVBoxNum-1 SubVBoxObj[i] = new VBox()
+	for i=0,SubDeckNum-1 SubDeckObj[i] = new Deck()
+	SubDeckProc()
+	SubVBoxObj[0].intercept(1)
+		newPlotVoltage("axon.soma.v(.5)",3,2)
+		newPlotConductances("axon.soma.gna_na",2,2,"axon.soma.gk_k",3,2)
+		newPlotCurrents("axon.soma.ina",2,2,"axon.soma.ik",3,2,"axon.soma.il_leak",4,2)
+		newPlotStates("axon.soma.m_na",2,2,"axon.soma.h_na",5,2,"axon.soma.n_k",3,2)
+		SubDeckObj[0].map()
+		SubDeckObj[0].flip_to(0)
+	SubVBoxObj[0].intercept(0)
+	SubVBoxObj[1].intercept(1)
+		//nrnsecmenu(.5,1)
+		BlockerMenu()
+		ToggleIVClampsButton()
+		xpanel(" ")
+			xbutton("SaveData","SaveData()")
+		xpanel(0)
+		SubDeckObj[1].map()
+		SubDeckObj[1].flip_to(0)
+	SubVBoxObj[1].intercept(0)
+	SubVBoxObj[2].intercept(1)
+		nrncontrolmenu()
+		xpanel(" ")
+			xbutton("QUIT","quit()")
+		xpanel(0)
+	SubVBoxObj[2].intercept(0)
+	MainHBoxObj.intercept(1)
+		for i=0,SubVBoxNum-1 SubVBoxObj[i].map()
+	MainHBoxObj.intercept(0)
+	MainHBoxObj.map($s1,$2,$3,$4,$5)
+}
+objref Rec[8]
+
+proc Record() {
+Rec[0] = new Vector()
+Rec[1] = new Vector()
+Rec[2] = new Vector()
+Rec[3] = new Vector()
+Rec[4] = new Vector()
+Rec[5] = new Vector()
+Rec[6] = new Vector()
+Rec[7] = new Vector()
+
+Rec[0].record(&t)
+Rec[1].record(&axon.soma.v(0.5))
+Rec[2].record(&axon.soma.m_na)
+Rec[3].record(&axon.soma.h_na)
+Rec[4].record(&axon.soma.n_k)
+Rec[5].record(&axon.soma.el_leak)
+Rec[6].record(&axon.soma.ena)
+Rec[7].record(&axon.soma.ek)
+}
+proc SubDeckProc() {
+	SubDeckObj[0].intercept(1)
+		newPlotIClamp("axon.ccl.i",2,2)
+	SubDeckObj[0].intercept(0)
+	SubDeckObj[0].intercept(1)
+		newPlotVClamp("axon.vcl.i",2,2)
+	SubDeckObj[0].intercept(0)
+	
+	SubDeckObj[1].intercept(1)
+		//nrnpointmenu(axon.ccl)
+		xpanel(" ")
+			xlabel("Current Clamp Setting")
+			xvalue("Amplitude(nA)","axon.ccl.amp",1,"")
+			xvalue("Duration(ms)","axon.ccl.dur",1,"")
+			xvalue("Delay(ms)","axon.ccl.del",1,"")
+			xlabel(" ")
+			xlabel("----PLOTS IN THE LEFT PANEL----")
+			xlabel("(from top to bottom)")
+			xlabel("1 - Membrane Potential")
+			xlabel("2 - Channel Conductances")
+			xlabel("    (red - Na, blue - K)")
+			xlabel("3 - Channel Currents")
+			xlabel("    (red - Na, blue - K, green - Leak)")
+			xlabel("4 - Channel Activation/Inactivation Variables")
+			xlabel("    (red - Na act, orange - Na inact, blue - K act)")
+			xlabel("5 - Current Clamp")
+			xlabel("6 - SaveData button saves the following variables in a file")
+			xlabel("    Data.dat in the order below:")
+			xlabel("    Time, Vm, m_Na, h_Na, n_Kdr, e_leak, e_na, e_k")
+		xpanel(0)
+	SubDeckObj[1].intercept(0)
+	SubDeckObj[1].intercept(1)
+		//nrnpointmenu(axon.vcl)
+		xpanel(" ")
+			xlabel("Voltage Clamp Setting")
+			xvalue("Amplitude (mV)","axon.vcl.amp[2]",1,"")
+			xlabel(" ")
+			xlabel("----PLOTS IN THE LEFT PANEL----")
+			xlabel("(from top to bottom)")
+			xlabel("1 - Membrane Potential")
+			xlabel("2 - Channel Conductances")
+			xlabel("    (red - Na, blue - K)")
+			xlabel("3 - Channel Currents")
+			xlabel("    (red - Na, blue - K, green - Leak)")
+			xlabel("4 - Channel Activation/Inactivation Variables")
+			xlabel("    (red - Na act, orange - Na inact, blue - K act)")
+			xlabel("5 - Voltage Clamp Current")
+			xlabel("6 - SaveData button saves the following variables in a file")
+			xlabel("    Data.dat in the order below:")
+			xlabel("    Time, Vm, m_Na, h_Na, n_Kdr, e_leak, e_na, e_k")
+		xpanel(0)
+	SubDeckObj[1].intercept(0)
+}
+
+proc ToggleIVClampsButton() {
+	xpanel(" ")
+		xbutton("Toggle IClamp/VClamp","ToggleIVClamps()")
+	xpanel(0)
+}
+
+proc ToggleIVClamps() { local i
+	flag = -1*flag+1
+	for i=0,SubDeckNum-1 SubDeckObj[i].flip_to(flag)
+	if (flag==0) {
+		UpdateIClamp(5,40,100)
+	} else {
+		UpdateVClamp(10,-60,0,-60,20,-10,1e9,-60)
+	}
+}
+
+proc BlockerMenu() {
+	xpanel(" ")
+		xbutton("Block Na Channel","gnabar_na=0")
+		xbutton("Unblock Na Channel","gnabar_na=0.12")
+		xbutton("Block K Channel","gkbar_k=0")
+		xbutton("Unblock K Channel","gkbar_k=0.036")
+	xpanel(0)
+}
+
+proc newPlotVoltage() {
+	newPlot(0,tstop,-80,70)
+	graphItem.save_name("graphList[0].")
+	graphList[0].append(graphItem)
+	graphItem.addexpr($s1,$2,$3)
+	graphItem.label(.08,.925,"mV")
+}
+
+proc newPlotIClamp() {
+	newPlot(0,tstop,-500,500)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.addexpr($s1,$2,$3)
+	sprint(tstr,"tstr1 = units(&%s)",$s1)
+	execute(tstr)
+	graphItem.label(.08,.925,tstr1)
+}
+
+proc newPlotVClamp() {
+	newPlot(0,tstop,-3000,13000)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.addexpr($s1,$2,$3)
+	sprint(tstr,"tstr1 = units(&%s)",$s1)
+	execute(tstr)
+	graphItem.label(.08,.925,tstr1)
+}
+
+proc newPlotConductances() {
+	newPlot(0,tstop,-.005,.025)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.addexpr($s1,$2,$3)
+	graphItem.addexpr($s4,$5,$6)
+	sprint(tstr,"tstr1 = units(&%s)",$s1)
+	execute(tstr)
+	graphItem.label(.08,.925,tstr1)
+}
+
+proc newPlotCurrents() {
+	newPlot(0,tstop,-.5,.5)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.addexpr($s1,$2,$3)
+	graphItem.addexpr($s4,$5,$6)
+	graphItem.addexpr($s7,$8,$9)
+	sprint(tstr,"tstr1 = units(&%s)",$s1)
+	execute(tstr)
+	graphItem.label(.08,.925,tstr1)
+}
+
+proc newPlotStates() {
+	newPlot(0,tstop,0,1)
+	graphItem.save_name("graphList[2].")
+	graphList[2].append(graphItem)
+	graphItem.addexpr($s1,$2,$3)
+	graphItem.addexpr($s4,$5,$6)
+	graphItem.addexpr($s7,$8,$9)
+}
+
+proc UpdateIClamp() {
+	ClearVClamp() 
+	axon.ccl.del = $1
+	axon.ccl.dur = $2
+	axon.ccl.amp = $3
+}
+
+proc UpdateVClamp() {
+	ClearIClamp()
+	axon.vcl.dur[0] = $1
+	axon.vcl.amp[0] = $2
+	axon.vcl.dur[1] = $3
+	axon.vcl.amp[1] = $4
+	axon.vcl.dur[2] = $5
+	axon.vcl.amp[2] = $6
+	axon.vcl.dur[3] = $7
+	axon.vcl.amp[3] = $8
+}
+
+proc ClearVClamp() {
+	axon.vcl.dur[0] = 0
+	axon.vcl.amp[0] = 0
+	axon.vcl.dur[1] = 0
+	axon.vcl.amp[1] = 0
+	axon.vcl.dur[2] = 0
+	axon.vcl.amp[2] = 0
+	axon.vcl.dur[3] = 0
+	axon.vcl.amp[3] = 0
+}
+
+proc ClearIClamp() {
+	axon.ccl.del = 0
+	axon.ccl.dur = 0
+	axon.ccl.amp = 0
+}
+objref Data
+proc Save() {
+Data = new File()
+Data.wopen("Data.dat")
+for i=0, Rec[0].size-1{
+Data.printf("%8.6f\t %8.6f\t %8.6f\t %8.6f\t %8.6f\t %8.6f\t %8.6f\t %8.6f\t\n", Rec[0].x[i], Rec[1].x[i], Rec[2].x[i], Rec[3].x[i], Rec[4].x[i], Rec[5].x[i], Rec[6].x[i], Rec[7].x[i])
+}
+Data.close()
+}
+
+proc SaveData() {
+Record()
+run()
+Save()
+}
+
+Main()

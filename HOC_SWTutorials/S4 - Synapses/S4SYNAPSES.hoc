@@ -1,0 +1,325 @@
+load_file("cell_template.hoc")
+load_file("stdgui.hoc")
+
+objref AScell
+AScell = new squidCell()
+
+delay = 20
+duration = 40
+amplitude = 0.2
+dt = 0.1
+steps_per_ms = 10
+tstop = 80
+v_init = -70
+
+
+objectvar stim
+AScell.soma stim = new IClamp(0.5)
+proc currentclamp_parameters() {
+stim.del = $1
+stim.dur = $2
+stim.amp = $3
+}	
+
+currentclamp_parameters(delay,duration,amplitude)
+
+objref sourceA, ncl0, Exca
+ncl0 = new List()
+
+interval = 10
+number = 5
+start = 10
+
+sourceA = new NetStim(.5)
+proc sourceA_parameters() {
+sourceA.interval = $1
+sourceA.number = $2
+sourceA.start = $3
+sourceA.noise = 0
+}
+
+sourceA_parameters(interval,number,start)
+
+AScell.dend0 Exca = new AlphaSynapse1(0.5)
+
+
+proc AS1() {
+Exca.w = $1
+}
+we1 = 0
+AS1 (we1)
+
+objref sourceB, ncl1, Inha
+ncl1 = new List()
+
+interval1 = 10
+number1 = 5
+start1 = 20
+
+sourceB = new NetStim(.5)
+
+proc sourceB_parameters() {
+sourceB.interval = $1
+sourceB.number = $2
+sourceB.start = $3
+}
+
+sourceB_parameters(interval1,number1,start1)
+
+AScell.dend0 Inha = new AlphaSynapse2(0.5)
+
+
+proc AS2() {
+Inha.w = $1
+}
+we2 = 0
+AS2 (we2)
+
+objref Excb, ncl2
+ncl2 = new List()
+AScell.dend1 Excb = new AlphaSynapse1(0.5)
+
+
+
+proc AS3() {
+Excb.w = $1
+}
+we3 = 0
+AS3 (we3)
+
+objref Inhb, ncl3
+ncl3 = new List()
+AScell.dend1 Inhb = new AlphaSynapse2(0.5)
+
+
+proc AS4() {
+Inhb.w = $1
+}
+we4 = 0
+AS4 (we4)
+
+AScell.dend0 ncl0.append(new NetCon(sourceA, Exca, 1, 0, 1))
+AScell.dend1 ncl2.append(new NetCon(sourceA, Excb, 1, 0, 1))
+AScell.dend0 ncl1.append(new NetCon(sourceB, Inha, 1, 0, 1))
+AScell.dend1 ncl3.append(new NetCon(sourceB, Inhb, 1, 0, 1))
+
+objref SourceA, SourceB 
+objref tempcon1, tempcon2
+
+	SourceA = new IntFire1()
+	SourceA.tau = 1e9
+	SourceA.refrac = dt      
+	SourceA.m=0           
+	tempcon1 = new NetCon(sourceA,SourceA,.5,0,1+(1e-9))
+	
+	SourceB = new IntFire1()
+	SourceB.tau = 1e9
+	SourceB.refrac = dt         
+	SourceB.m=0           
+	tempcon2 = new NetCon(sourceB,SourceB,.5,0,1+(1e-9)) 
+	
+
+
+
+/////////
+// GUI //
+/////////
+SubVBoxNum = 4
+objref MainHBoxObj,SubVBoxObj[SubVBoxNum], sect, sect1, sect2
+strdef yexpr, xexpr
+proc MainBox() { local i
+		MainHBoxObj = new HBox()
+		for i=0,SubVBoxNum-1 SubVBoxObj[i] = new VBox()
+		SubVBoxObj[0].intercept(1)
+			sect = new Deck()
+			sect.intercept(1)
+			ncard = 3
+			mkVoltage(1)
+			sect.intercept(0)	
+			sect.map()	
+			sect.flip_to(0)
+			sect1 = new Deck()
+			sect1.intercept(1)
+			mkConductance(1)
+			sect1.intercept(0)	
+			sect1.map()	
+			sect1.flip_to(0)
+			newPlotParameters()
+		SubVBoxObj[0].intercept(0)
+		SubVBoxObj[1].intercept(1)
+			loadgif()
+			spikeA()
+			spikeB()
+			xpanel(" ")
+			xlabel("Weight Control")
+			xvalue("Dend1 Exc. Wt.","we1",1,"AS1(we1)")
+			xvalue("Dend1 Inh. Wt.","we2",1,"AS2(we2)")
+			xvalue("Dend2 Exc. Wt.","we3",1,"AS3(we3)")
+			xvalue("Dend2 Inh. Wt.","we4",1,"AS4(we4)")
+			xpanel(0)
+		SubVBoxObj[1].intercept(0)
+		SubVBoxObj[2].intercept(1)
+			nrnsecmenu(.5,1)
+		SubVBoxObj[2].intercept(0)
+		SubVBoxObj[3].intercept(1)
+			nrncontrolmenu()
+			xpanel(" ")
+				xbutton("QUIT","quit()")
+			xpanel(0)
+			panel()
+			panel1()
+			sect2 = new Deck()
+			sect2.intercept(1)
+			genrate(1)
+			sect2.intercept(0)	
+			sect2.map()	
+			sect2.flip_to(0)
+			xpanel(" ")
+			xlabel("==========AP Propagation Program==========")
+		xlabel("MU Computational Neuroscience Lab")
+		xlabel("July 2 2010")
+		xpanel(0)
+		SubVBoxObj[3].intercept(0)
+		MainHBoxObj.intercept(1)
+			for i=0,SubVBoxNum-1 SubVBoxObj[i].map()
+		MainHBoxObj.intercept(0)
+		MainHBoxObj.map("Tutorial 4: AP Propagation",0,0,1000,700)
+}
+for i=2, ncard {		
+	sect.intercept(1)
+	mkVoltage(i)		
+	sect.intercept(0)
+	sect1.intercept(1)
+	mkConductance(i)		
+	sect1.intercept(0)
+	sect2.intercept(1)
+	genrate(i)	
+	sect2.intercept(0)
+}		
+
+proc genrate() {
+	if ($1 = 1) {
+	nrnpointmenu(stim)
+	}
+	if ($1 = 2) {
+	nrnpointmenu(sourceA)
+	}
+	if ($1 = 3) {
+	nrnpointmenu(sourceB)
+	}
+}
+
+proc mkVoltage() {
+	if ($1 = 1) {
+	newPlot(0,tstop,-100,100)
+	graphItem.save_name("graphList[0].")
+	graphList[0].append(graphItem)
+	graphItem.label("mV")
+	graphItem.addexpr("AScell.soma.v(.5)",2,2)
+	}
+	if ($1 = 2) {
+	newPlot(0,tstop,-100,100)
+	graphItem.save_name("graphList[0].")
+	graphList[0].append(graphItem)
+	graphItem.label("mV")
+	graphItem.addexpr("AScell.dend0.v(.5)",2,2)
+	}
+	if ($1 = 3) {
+	newPlot(0,tstop,-100,100)
+	graphItem.save_name("graphList[0].")
+	graphList[0].append(graphItem)
+	graphItem.label("mV")
+	graphItem.addexpr("AScell.dend1.v(.5)",2,2)
+	}
+}
+proc mkConductance() {
+	if ($1 = 1) {
+	newPlot(0,tstop,0,.05)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.label("S/cm2")
+	graphItem.addexpr("AScell.soma.gna_naalpha",2,2)
+	graphItem.addexpr("AScell.soma.gk_kalpha",3,2)
+	}
+	if ($1 = 2) {
+	newPlot(0,tstop,0,.01)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.label("uS/cm2")
+	graphItem.addexpr("Exca.g",2,2)
+	graphItem.addexpr("Inha.g",3,2)
+	}
+	if ($1 = 3) {
+	newPlot(0,tstop,0,.01)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.label("uS/cm2")
+	graphItem.addexpr("Excb.g",2,2)
+	graphItem.addexpr("Inhb.g",3,2)
+	}
+}
+proc newPlotParameters() {
+	newPlot(0,tstop,0,1)
+	graphItem.save_name("graphList[2].")
+	graphList[2].append(graphItem)
+	graphItem.addexpr("AScell.soma.m_naalpha",2,2)
+	graphItem.addexpr("AScell.soma.h_naalpha",3,2)
+	graphItem.addexpr("AScell.soma.n_kalpha",4,2)
+	}
+proc spikeA() {
+	newPlot(0,tstop,0,4)
+	graphItem.save_name("graphList[3].")
+	graphList[3].append(graphItem)
+	graphItem.addexpr("SourceA.m",2,2) 
+} 
+    
+proc spikeB() {
+newPlot(0,tstop,0,4)
+	graphItem.save_name("graphList[3].")
+	graphList[3].append(graphItem)
+	graphItem.addexpr("SourceB.m",3,2) 
+
+}
+proc panel() {
+	xpanel(" ")
+		xlabel("Choose Compartment")
+		sprint(yexpr, "xradiobutton(\"Soma\", \"flip1()\",1)")
+		execute(yexpr)
+		sprint(yexpr, "xradiobutton(\"Dend1\", \"flip2()\")")
+		execute(yexpr)
+		sprint(yexpr, "xradiobutton(\"Dend2\", \"flip3()\")")
+		execute(yexpr)
+	xpanel(0)
+	}
+proc flip1() {
+	sect.flip_to(0)
+	sect1.flip_to(0)
+}
+proc flip2() {
+	sect.flip_to(1)
+	sect1.flip_to(1)
+}
+proc flip3() {
+	sect.flip_to(2)
+	sect1.flip_to(2)
+}
+objref gifplot
+
+proc loadgif() {
+	gifplot = new Graph()
+	gifplot.gif("neuron1.gif")
+}
+
+proc panel1() {
+	xpanel(" ")
+		xlabel("Choose Source")
+		sprint(xexpr, "xradiobutton(\"Current Clamp\", \"sect2.flip_to(0)\",1)")
+		execute(xexpr)
+		sprint(xexpr, "xradiobutton(\"SourceA\", \"sect2.flip_to(1)\")")
+		execute(xexpr)
+		sprint(xexpr, "xradiobutton(\"SourceB\", \"sect2.flip_to(2)\")")
+		execute(xexpr)
+	xpanel(0)
+	}
+
+MainBox()

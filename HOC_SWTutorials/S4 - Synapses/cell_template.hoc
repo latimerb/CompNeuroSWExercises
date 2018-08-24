@@ -1,0 +1,112 @@
+/////////////////////
+// Model Templates //
+/////////////////////
+
+begintemplate squidCell
+	public soma,dend0,dend1
+	create soma,dend0,dend1
+
+	public ncl
+	objref ncl
+
+	proc init() {
+		ncl = new List()
+
+		/////// topology ////////
+    		create soma,dend0,dend1
+			connect dend0(0), soma(1)
+			connect dend1(0), dend0(1)
+
+		/////// geometry ////////
+		soma {
+			nseg=1
+			L=30		// (micrometer)
+			diam=30		// (micrometer)
+	    	}
+				
+		dend0 {
+			nseg=1
+			L=100		// (micrometer)
+			diam=2		// (micrometer)
+	    	}
+				
+		dend1 {
+			nseg=1
+			L=100		// (micrometer)
+			diam=2		// (micrometer)
+	    	}
+				
+		/////// biophysics //////
+		soma {
+			cm = 1		// (microF/cm2)
+			Ra = 25		// (ohm-cm)
+			Rm = 5000	// (ohm-cm2)
+			
+			insert leak
+			glbar_leak = 1/Rm 	// (siemens/cm2)
+			el_leak = -58.3		// (mV)
+			
+			insert naalpha
+			insert kalpha
+			ena = 55
+			ek = -80
+			gnabar_naalpha = .12	// (siemens/cm2)
+			gkbar_kalpha = 0.036	// (siemens/cm2)
+			
+
+			/*insert na
+			insert k
+			
+			ena = 55
+			gnabar_na = .12	// (siemens/cm2)
+			
+				mvhalf_na = -45.0246 // (mV)
+				mk_na = 9.4718 // (mV)
+				
+				mcbase_na = 0.0029 // (ms)
+				mcamp_na = 0.4985 // (ms)
+				mvpeak_na = -43.8354 // (mV)
+				msigma_na = 41.310 // (mV)
+				
+				hvhalf_na = -67.3076 // (mV)
+				hk_na = -6.9502 // (mV)
+				
+				hcbase_na = 0.2617 // (ms)
+				hcamp_na = 8.3207 // (ms)
+				hvpeak_na = -71.8065 // (mV)
+				hsigma_na = 24.6627 // (mV)
+
+			ek = -80
+			gkbar_k = 0.036	// (siemens/cm2)
+			
+				nvhalf_k = -58.4129 // (mV)
+				nk_k = 16.3458 // (mV)
+				
+				ncbase_k = 0.6192 // (ms)
+				ncamp_k = 5.1731 // (ms)
+				nvpeak_k = -82.1695 // (mV)
+				nsigma_k = 52.7895 // (mV)
+				*/
+		}
+		
+		dend0 {
+			cm = 1		// (microF/cm2)
+			Ra = 25	// (ohm-cm)
+			Rm = 5000// (ohm-cm2)
+			
+			insert leak
+			glbar_leak = 1/Rm // (siemens/cm2)
+			el_leak = -58.3	// (mV)
+		}
+		
+		dend1 {
+			cm = 1		// (microF/cm2)
+			Ra = 25	// (ohm-cm)
+			Rm = 5000// (ohm-cm2)
+			
+			insert leak
+			glbar_leak = 1/Rm // (siemens/cm2)
+			el_leak = -58.3	// (mV)
+		}
+	}
+endtemplate squidCell

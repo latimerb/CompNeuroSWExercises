@@ -1,0 +1,26 @@
+load_file("nrngui.hoc")
+
+create soma
+access soma
+soma nseg = 1
+soma diam = 18.8
+soma Ra = 123
+soma cm = 1
+
+soma insert hh
+
+gnabar_hh = 0
+gkbar_hh = 0
+gl_hh = 0.0003
+ena = 55
+ek = -77
+el_hh = -54.3
+
+objectvar stim
+soma stim = new IClamp(0.5)
+
+stim.del = 100
+stim.dur = 100
+stim.amp = 0.1
+
+tstop = 300

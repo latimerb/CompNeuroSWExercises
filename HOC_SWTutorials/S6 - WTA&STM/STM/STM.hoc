@@ -1,0 +1,238 @@
+{load_file("stdgui.hoc")}
+{load_file("FS_cell.hoc")}
+
+proc STMMain() {
+	InitParameters()
+	CreateSTMCells()
+	CreateAllSyn()
+	InitAllIClamp()
+	MainBox()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+proc InitParameters() {
+	dt = 0.01	// (ms)
+	tstop = 700	// (ms)
+	v_init = -75	// (mV)
+	steps_per_ms = 10
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+CellNum = 5
+objref FSCellList
+FSCellList = new List(CellNum)
+
+proc CreateSTMCells() { local i
+	DeleteSTMCells()
+	for i=0,CellNum-1 FSCellList.append(new FastSpiking())
+}
+
+proc DeleteSTMCells() {
+	FSCellList.remove_all()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+NetConThreshold = 0
+NetConDelay = 2
+NetConWeight = 1
+
+proc CreateAllSyn() {
+	DeleteAllsyn()
+	newAllSyn()
+}
+
+proc DeleteAllsyn() { local i
+	for i=0,CellNum-1 DeleteSyn(i)
+}
+
+proc DeleteSyn() {
+	FSCellList.o($1).SynList.remove_all()
+	FSCellList.o($1).NetConList.remove_all()
+}
+
+proc newAllSyn() { local i,j
+	for i=0,CellNum-1 {
+		for j=0,CellNum-1 {
+			if (i!=j) {
+				newSyn(i,j)
+			}
+		}
+	}
+}
+
+proc newSyn() { local tempind
+	FSCellList.o($1).dend FSCellList.o($1).SynList.append(new AMPA(0.9))
+	tempind = FSCellList.o($1).SynList.count()-1
+	FSCellList.o($2).soma FSCellList.o($1).NetConList.append(new NetCon(&v(0.5),FSCellList.o($1).SynList.o(tempind),NetConThreshold,NetConDelay,NetConWeight))
+	fprint("The AMPA synapse from cell[%d] to cell[%d] is added to the Lists in cell[%d] with index[%d].\n",$2,$1,$1,tempind)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+proc InitAllIClamp() { local i
+	for i=0,CellNum-1 InitIClamp(i,0,0,0,0,0,0)
+	InitIClamp(0,100,50,.5,500,50,-.12)
+}
+
+proc InitIClamp() {
+	FSCellList.o($1).ccl1.del = $2
+	FSCellList.o($1).ccl1.dur = $3
+	FSCellList.o($1).ccl1.amp = $4
+	FSCellList.o($1).ccl2.del = $5
+	FSCellList.o($1).ccl2.dur = $6
+	FSCellList.o($1).ccl2.amp = $7
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+objref pwm
+{pwm = new PWManager()}
+
+strdef mainboxstr,tstr
+mainboxstr = "STM 1.0 Main GUI Panel"
+mainboxhandle = 0
+
+objref mainbox,graphbox,rightbox,controlpanel,injectionpanel
+objref subgraphbox[CellNum]
+
+proc MainBox() {
+	mainboxhandle = GetPanelHandle(mainboxstr)
+	if(mainboxhandle!=0) {
+		pwm.close(mainboxhandle)
+		mainboxhandle = 0
+	}
+	mainbox = new HBox()
+	mainbox.intercept(1)
+		GraphBox()
+		RightBox()
+	mainbox.intercept(0)
+	mainbox.map(mainboxstr,0,0,900,600)
+}
+
+proc GraphBox() {
+	graphbox = new VBox()
+	graphbox.intercept(1)
+		for i=0,CellNum-1 SubGraphBox(i)
+	graphbox.intercept(0)
+	graphbox.map()
+}
+
+proc SubGraphBox() { local i
+	i = $1
+	subgraphbox[i] = new HBox()
+	subgraphbox[i].intercept(1)
+		newPlotVoltage(i)
+		newPlotCurrent(i)
+	subgraphbox[i].intercept(0)
+	subgraphbox[i].map()
+}
+
+proc RightBox() {
+	rightbox = new VBox()
+	rightbox.intercept(1)
+		xpanel(" ")
+			xlabel("Simulation Control")
+				xpvalue("Init", &v_init, 1, "stdinit()", 1)
+				xbutton("Init & Run", "run()")
+				//xbutton("Reset All","STMMain()")
+				xbutton("Stop", "stoprun=1")
+				xvalue("Continue til", "runStopAt", 1, "{continuerun(runStopAt) stoprun=1}", 1, 1)
+				xvalue("Continue for", "runStopIn", 1, "{continuerun(t + runStopIn) stoprun=1}", 1,1)
+				xbutton("Single Step", "steprun()")
+				xvalue("t", "t", 2)
+				xvalue("Tstop", "tstop", 1, "tstop_changed()", 0, 1)
+				xpvalue("dt", &dt, 1, "setdt()")
+				//xvalue("Points plotted/ms", "steps_per_ms", 1, "setdt()", 0, 1)
+				xpvalue("Real Time", &realtime)
+			/*xlabel("Movie Run")
+				movie_timer = new Timer("moviestep()")
+				xbutton("Init & Run", "movierun()")
+				xpvalue("Seconds per step", &movie_frame_dur_, 1)*/
+		xpanel(0)
+			InjectionPanel()
+		xpanel(" ")
+			xlabel("==========Quit the Program==========          ")
+			xbutton("QUIT","quit()")
+			xlabel("==========STM 1.0 program==========")
+			xlabel("MU Center for Computational Neurobiology")
+			xlabel("Summer 2010")
+		xpanel(0)
+	rightbox.intercept(0)
+	rightbox.map()
+}
+
+proc InjectionPanel() {
+	injectionpanel = new Deck()
+	for i=0,CellNum-1 InjecDeck(i)
+	xpanel(" ")
+		xlabel("Choose Cell for IClamp Setup")
+		xradiobutton("Cell[0]","injectionpanel.flip_to(0)",1)
+		xradiobutton("Cell[1]","injectionpanel.flip_to(1)")
+		xradiobutton("Cell[2]","injectionpanel.flip_to(2)")
+		xradiobutton("Cell[3]","injectionpanel.flip_to(3)")
+		xradiobutton("Cell[4]","injectionpanel.flip_to(4)")
+	xpanel(0)
+	injectionpanel.map()
+	injectionpanel.flip_to(0)
+}
+
+proc InjecDeck() { local i
+	i = $1
+	injectionpanel.intercept(1)
+		xpanel(" ")
+			sprint(tstr,"IClamp #1 Setup for Cell[%d]",i)
+			xlabel(tstr)
+			sprint(tstr,"FSCellList.o(%d).ccl1.del",i)
+			xvalue("delay (ms)",tstr,1,"")
+			sprint(tstr,"FSCellList.o(%d).ccl1.dur",i)
+			xvalue("duration (ms)",tstr,1,"")
+			sprint(tstr,"FSCellList.o(%d).ccl1.amp",i)
+			xvalue("amplitude (nA)",tstr,1,"")
+			sprint(tstr,"IClamp #2 Setup for Cell[%d]",i)
+			xlabel(tstr)
+			sprint(tstr,"FSCellList.o(%d).ccl2.del",i)
+			xvalue("delay (ms)",tstr,1,"")
+			sprint(tstr,"FSCellList.o(%d).ccl2.dur",i)
+			xvalue("duration (ms)",tstr,1,"")
+			sprint(tstr,"FSCellList.o(%d).ccl2.amp",i)
+			xvalue("amplitude (nA)",tstr,1,"")
+		xpanel(0)
+	injectionpanel.intercept(0)
+}
+
+func GetPanelHandle() { local handle,i
+	handle = 0
+	tstr = $s1
+	for (i=0;i<=(pwm.count()-1);i+=1) {
+		if (strcmp(pwm.name(i),tstr)==0) handle=i
+	}
+	return handle
+}
+
+proc newPlotVoltage() {
+	newPlot(0,tstop,-80,40)
+	graphItem.save_name("graphList[0].")
+	graphList[0].append(graphItem)
+	graphItem.label(.12,1)
+	sprint(tstr,"graphItem.addexpr(\"FSCellList.o(%d).soma.v(.5)\",3,2)",$1)
+	execute(tstr)
+}
+
+
+proc newPlotCurrent() {
+	newPlot(0,tstop,-.2,.6)
+	graphItem.save_name("graphList[1].")
+	graphList[1].append(graphItem)
+	graphItem.label(.12,1)
+	sprint(tstr,"graphItem.addexpr(\"FSCellList.o(%d).ccl1.i\",2,2)",$1)
+	execute(tstr)
+	sprint(tstr,"graphItem.addexpr(\"FSCellList.o(%d).ccl2.i\",5,2)",$1)
+	execute(tstr)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+STMMain()

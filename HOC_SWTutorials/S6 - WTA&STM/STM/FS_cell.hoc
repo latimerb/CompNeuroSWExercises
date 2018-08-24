@@ -1,0 +1,79 @@
+/////////////////////
+// Model Templates //
+/////////////////////
+
+begintemplate FastSpiking
+	public soma, dend
+	create soma, dend
+
+	public SynList,NetConList,ccl1,ccl2
+	objref SynList,NetConList,ccl1,ccl2
+
+	proc init() {
+		SynList = new List()
+		NetConList = new List()
+
+		/////// topology ////////
+		create soma, dend
+		connect dend(0), soma(1)
+
+		/////// geometry ////////
+		soma {
+			nseg=1
+			L=42.346621//15		// (micrometer)
+			diam=5.3132928 //15		// (micrometer)
+	    	}
+
+		dend {
+			nseg=1
+			L=150		// (micrometer)
+			diam=10		// (micrometer)
+		}
+
+		/////// biophysics //////
+		soma {
+			cm = 1		// (microF/cm2)
+			Ra = 150	// (ohm-cm)
+			Rm = 20000	// (ohm-cm2)
+			
+			insert leak
+			glbar_leak = 1/Rm // (siemens/cm2)
+			el_leak = -70	// (mV)
+
+			insert na
+			insert kdr
+	    	}
+
+		dend {
+			cm = 1		// (microF/cm2)
+			Ra = 150	// (ohm-cm)
+			Rm = 20000	// (ohm-cm2)
+			
+			insert leak
+			glbar_leak = 1/Rm // (siemens/cm2)
+			el_leak = -70	// (mV)
+
+			insert na
+			insert kdr
+		}
+		soma {
+			ena = 45		// (mV)
+			gnabar_na = 0.035	// (siemens/cm2)
+
+			ek = -80		// (mV)
+			gkdrbar_kd = 0.008 // (siemens/cm2)
+		}
+
+		dend {
+			ena = 45		// (mV)
+			gnabar_na = 0.010	// (siemens/cm2)
+
+			ek = -80		// (mV)
+			gkdrbar_kd = 0.003 // (siemens/cm2)
+		}
+		
+		///// IClamp /////
+		soma {ccl1 = new currentclamp(0.5)}
+		soma {ccl2 = new currentclamp(0.5)}
+	}
+endtemplate FastSpiking

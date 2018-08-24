@@ -1,0 +1,5 @@
+06/22/2010 STM_1.0
+	- Rebuild GUI
+	- Add SynList, NetConList into cell template
+	- Put IClamp into cell template
+	- Change the bug of reversing the dend and soma in synapse

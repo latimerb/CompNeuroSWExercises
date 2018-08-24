@@ -1,0 +1,54 @@
+/////////////////////
+// Model Templates //
+/////////////////////
+
+begintemplate squidCell
+	public soma
+	create soma
+
+	public ccl,vcl, ccl1
+	objref ccl,vcl, ccl1
+
+	proc init() {
+
+		/////// topology ////////
+    		create soma
+
+		/////// geometry ////////
+		soma {
+			nseg=1
+			L=500		// (micrometer)
+			diam=500		// (micrometer)
+	    	}
+				
+		/////// biophysics //////
+		soma {
+			cm = 1		// (microF/cm2)
+			Ra = 30	// (ohm-cm)
+			Rm = 3333.33 // (ohm-cm2)
+			
+			insert leak
+			glbar_leak = 1/Rm // (siemens/cm2)
+			el_leak = -60	// (mV)
+
+			insert na
+			insert k
+			//ena = 50
+			//ek = -80
+			
+			gnabar_na = .12	// (siemens/cm2)
+			nao = 79.8
+				
+
+			gkbar_k = 0.036	// (siemens/cm2)
+			ki = 69.35
+				
+		}
+		/////// instrumentation //////
+		soma {
+			ccl = new IClamp(.5)
+			vcl = new VVClamp(.5)
+			ccl1=new IClamp(.5)
+		}
+	}
+endtemplate squidCell

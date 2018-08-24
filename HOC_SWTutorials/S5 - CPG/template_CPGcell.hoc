@@ -1,0 +1,68 @@
+begintemplate CPGCell
+	public soma,dend,Rmsoma,Rmdend,Xpos,Ypos,name,ActiveFlag,ccl
+	create soma,dend // declare the two compartments
+	objref ccl
+	strdef name
+	proc init() {
+		
+		///// topology /////
+		create soma,dend // destroy and recreate the two compartments
+		connect dend(0),soma(1)
+		Xpos = 0
+		Ypos = 0
+		name = " "
+		
+		///// geometry /////
+		soma {
+			nseg = 1
+			L = 30 // (um)
+			diam = 30 // (um)
+		}
+		dend {
+			nseg = 1
+			L = 100 // (um)
+			diam = 2 // (um)
+		}
+		
+		///// biophysics /////
+		soma {
+			cm = 1 // (uF/cm2)
+			Ra = 50 // (ohm-cm)
+			Rmsoma = 10000 // (ohm-cm2)
+		}
+		dend {
+			cm = 1 // (uF/cm2)
+			Ra = 50 // (ohm-cm)
+			Rmdend = 10000 // (ohm-cm2)
+		}
+		{units(&Rmsoma,"ohm-cm2")}
+		{units(&Rmdend,"ohm-cm2")}
+		
+		///// channels /////
+		soma {
+			insert leak
+			el_leak = -59.4
+			insert na
+			ena = 45
+			insert k
+			ek = -82
+		}
+		dend {
+			insert leak
+			el_leak = -59.4
+		}
+		
+		soma {
+			gbar_leak = 1/Rmsoma
+			gbar_na = .120
+			gbar_k = .036
+		}
+		dend {
+			gbar_leak = 1/Rmdend
+		}
+		
+		soma {
+			ccl = new IClamp(.5)
+		}
+	}
+endtemplate CPGCell	

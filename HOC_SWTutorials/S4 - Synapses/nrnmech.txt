@@ -1,0 +1,5 @@
+FILE QUARANTINED
+
+Microsoft Forefront Protection for Exchange Server removed a file since it was found to match a filter.
+File name: "Synapses_1.1.zip->nrnmech.dll"
+Filter name: "FILE FILTER= Delete Execuatble Files: *"
